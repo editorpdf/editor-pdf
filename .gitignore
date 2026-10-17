@@ -1,0 +1,17 @@
+# nunca publicar: chave de assinatura do APK e configurações deste computador
+android/chave/
+android/local.properties
+android/.gradle/
+android/build/
+android/app/build/
+# gerados
+instalador/
+loja/*.msix
+dist/
+build/
+__pycache__/
+*.pyc
+# dados do usuário
+dados/config.json
+dados/registros.log
+dados/ambiente.json
