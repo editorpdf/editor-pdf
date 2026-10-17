@@ -76,6 +76,8 @@ O que dá para fazer:
 
 Privacidade: o app não tem conta e não envia seus arquivos para lugar nenhum. Tudo é processado no seu computador.
 
+Código aberto (licença AGPL-3.0): https://github.com/editorpdf/editor-pdf
+
 **Recursos do produto (um por linha):**
 Editar o texto do PDF mantendo a fonte original
 Assinatura desenhada, digitada ou com certificado A1

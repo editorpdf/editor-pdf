@@ -23,5 +23,7 @@ if ($LASTEXITCODE -eq 0) {
 }
 if ($LASTEXITCODE) { throw "não consegui enviar os arquivos para o GitHub ($LASTEXITCODE)" }
 $ErrorActionPreference = 'Stop'
+# código-fonte da mesma versão (licença AGPL): github.com/editorpdf/editor-pdf, com a marcação $tag
+& (Join-Path $Raiz 'codigo\publicar-codigo.ps1')
 & (Join-Path $Web 'publicar-web.ps1')
 "Versão publicada: Windows $vWin, Android $vAnd"

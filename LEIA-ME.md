@@ -14,6 +14,8 @@ Mande o arquivo **`instalador\Instalar Editor de PDF.exe`** (por WhatsApp, Googl
 
 **Atualizações automáticas (desde a 1.7):** quem já tem o app recebe o aviso "Nova versão disponível" ao abrir e atualiza com um clique. Para lançar uma versão: aumente o número em `sistema\versao.txt` (Windows) e/ou em `android\app\build.gradle.kts` (Android), gere o instalador e o APK, escreva as novidades em `web\novidades.json` e rode `web\publicar-versao.ps1`. Downloads diretos: https://github.com/editorpdf/editorpdf.github.io/releases/latest
 
+**Código aberto (licença AGPL):** o app usa MuPDF e Ghostscript, que exigem que o código-fonte fique público. Ele está em https://github.com/editorpdf/editor-pdf, e o `publicar-versao.ps1` envia o código de cada versão sozinho (`codigo\publicar-codigo.ps1`, que copia só uma lista fixa de arquivos: a chave do APK, os registros e os instaladores nunca vão). No app, "Sobre e licenças" fica no rodapé da tela inicial.
+
 Também dá para mandar o instalador de novo. Se o app já estiver instalado, o instalador mostra a tela "Atualizar" com as duas versões (por exemplo 1.3 → 1.4), não pergunta as opções de novo e troca só os arquivos, sem duplicar o app. Se a versão for a mesma, aparece "Reinstalar". Se a versão instalada for mais nova, ele avisa antes. Ao gerar uma versão nova, aumente o `Versao` no `instalador.iss`.
 
 - Na primeira vez o Windows mostra "O Windows protegeu o computador", porque o instalador não tem assinatura digital paga. Clique em **Mais informações** e **Executar assim mesmo**.

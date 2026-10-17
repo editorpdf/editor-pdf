@@ -68,7 +68,7 @@ try {
     $ErrorActionPreference = 'Continue'
     git add -A
     git diff --cached --quiet
-    if ($LASTEXITCODE) { git commit -q -m "Código-fonte do Editor de PDF: Windows $vWin, Android $vAnd" }
+    if ($LASTEXITCODE) { git commit -q -m "Código-fonte do Editor de PDF: Windows $vWin, Android $vAnd" -m 'Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>' }
     # a marcação aponta para o código da versão publicada (se a versão for republicada, a marcação acompanha)
     git tag -f $tag *> $null
     git push -q -u origin main
