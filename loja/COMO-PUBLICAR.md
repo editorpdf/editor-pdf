@@ -3,7 +3,8 @@
 > Nome reservado: **Editor de PDF Fácil** (o "Editor de PDF" já era de outra pessoa). Store ID `9P5JP86G028L`,
 > link https://apps.microsoft.com/detail/9P5JP86G028L. Identidade já em `identidade.json`.
 > Primeiro envio (versão 1.9.0.0) mandado para certificação em 17/10/2026: público, gratuito, Produtividade,
-> classificação Livre, política de privacidade em editorpdf.github.io/privacidade.html, justificativa do runFullTrust nas Opções de envio.
+> classificação Livre, política de privacidade em editorpdf.github.io/privacidade.html, justificativa do runFullTrust nas Opções de envio. Aprovado e publicado no mesmo dia.
+> Envio 2 (versão 2.0.0.0, "Sobre e licenças" e código aberto) preparado em 17/10/2026: pacote trocado, "Novidades nesta versão" e linha do código-fonte na descrição. Enviado para certificação no mesmo dia.
 
 ## 1. Conta (uma vez só)
 1. Entre em https://storedeveloper.microsoft.com com a sua conta Microsoft.

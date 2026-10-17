@@ -140,7 +140,9 @@ O selo no topo mostra em que modo você está ("Modo avançado" ou "Modo básico
 - Só texto horizontal é editável. Páginas giradas usam o modo básico para trocar texto.
 - Se o novo texto tiver letras que a fonte não tem (por exemplo emojis), elas viram vazio ou "?" e o app avisa.
 - Um bloco que mistura estilos (negrito no meio da frase, cores diferentes) recebe um estilo só ao ser editado; o app avisa.
-- Sem reflow entre blocos ou páginas, e sem OCR: PDF escaneado não tem texto para editar. PDF com senha não abre.
+- Sem reflow entre blocos ou páginas.
+- **PDF escaneado (desde a 2.1):** ao clicar em "Editar texto" numa página que é só imagem, o app oferece reconhecer o texto (OCR) e já deixa editável. Ao trocar um trecho, os pixels antigos são apagados e pintados com a cor do papel, e o texto novo sai na cor da tinta, numa fonte parecida (não a letra original do escaneado). Escaneamentos tortos, borrados ou com fundo manchado podem deixar a emenda visível; confira antes de enviar.
+- **PDF com senha (desde a 2.1):** o app pede a senha ao abrir (no modo básico, sem servidor, não abre). Ao salvar, o arquivo continua protegido com a mesma senha. No celular, senhas com vírgula, sinal de igual ou espaço não podem ser recolocadas: o app salva sem senha e avisa.
 - A fonte exata do original só é reaproveitada quando o arquivo tem todas as letras novas. Fontes "subset" (só as letras usadas) costumam não ter, e aí entra uma fonte parecida do Windows. O Acrobat tem o mesmo limite.
 
 ## Testes feitos (2026-10-15, Chromium, PDFs de exemplo)

@@ -149,6 +149,22 @@ def separar_colunas(lines):
     return [sorted(col, key=lambda l: l["bbox"][1]) for col in colunas]
 
 
+def cores_da_area(page, rect):
+    """Cor da letra e cor do papel numa área de página escaneada: os pixels mais escuros são a tinta, os mais claros o papel."""
+    try:
+        pix = page.get_pixmap(clip=rect + (-2, -2, 2, 2), dpi=96, colorspace=pymupdf.csRGB, alpha=False)
+        n = pix.n
+        px = [tuple(pix.samples[i:i + 3]) for i in range(0, len(pix.samples) - n + 1, n)]
+        if len(px) < 10:
+            raise ValueError
+        px.sort(key=sum)
+        k = max(1, len(px) // 10)
+        media = lambda grupo: "#%02x%02x%02x" % tuple(round(sum(c[j] for c in grupo) / len(grupo)) for j in range(3))
+        return media(px[:k]), media(px[-len(px) // 3:])
+    except Exception:  # noqa: BLE001
+        return "#000000", "#ffffff"
+
+
 def analyze(pdf_bytes, pno):
     doc = pymupdf.open(stream=pdf_bytes, filetype="pdf")
     try:
@@ -175,6 +191,8 @@ def analyze(pdf_bytes, pno):
                     continue
                 main = max(spans, key=lambda s: len(s["text"].strip()))
                 lines.append({
+                    # texto invisível (camada do OCR sobre a imagem escaneada): o que se vê são os pixels da imagem
+                    "ocr": all(s.get("alpha", 255) == 0 for s in spans if s["text"].strip()),
                     "bbox": [round(v, 2) for v in l["bbox"]],
                     "origin": [round(v, 2) for v in spans[0]["origin"]],
                     "text": text,
@@ -220,12 +238,17 @@ def analyze(pdf_bytes, pno):
                 first = lines[0]
                 fam, bold, italic = classify_font(first["font"], first["flags"])
                 styles = {s for l in lines for s in l["styles"]}
-                out.append({
+                bloco = {
                     "bbox": [round(x0, 2), round(y0, 2), round(x1, 2), round(y1, 2)],
                     "lines": lines, "text": text, "wrapped": wrapped, "size": size, "font": first["font"],
                     "color": first["color"], "family": fam, "bold": bool(bold), "italic": bool(italic),
                     "lineh": round(lineh, 3), "align": align, "origin": first["origin"], "mixed": len(styles) > 1,
-                })
+                }
+                if all(l["ocr"] for l in lines):
+                    # página escaneada: a cor da letra e a do papel vêm dos pixels; a fonte do OCR não tem desenho
+                    tinta, papel = cores_da_area(page, pymupdf.Rect(x0, y0, x1, y1))
+                    bloco.update(ocr=True, color=tinta, bg=papel, font="", family="sans", bold=False, italic=False, mixed=False)
+                out.append(bloco)
         return {"rotated": False, "blocks": out, "width": page.rect.width, "height": page.rect.height}
     finally:
         doc.close()
@@ -522,16 +545,32 @@ def apply_ops(pdf_bytes, ops):
             page = doc[pno]
             reps = [o for o in ops if o["page"] == pno and o["kind"] == "rep"]
             reds = [o for o in ops if o["page"] == pno and o["kind"] == "redact"]
+            for o in reps:
+                if o.get("ocr"):
+                    o["font"] = None  # a fonte do OCR (GlyphLessFont) não tem desenho: escreve com uma fonte do Windows
+            normais = [o for o in reps if not o.get("ocr")]
+            escaneados = [o for o in reps if o.get("ocr")]
             # 1) apaga o texto antigo (sem pintar nada por cima e sem mexer em imagens/gráficos)
-            if reps:
-                for o in reps:  # guarda a fonte original antes: depois da redação o PDF pode descartá-la
+            if normais:
+                for o in normais:  # guarda a fonte original antes: depois da redação o PDF pode descartá-la
                     picker.original(page, o.get("font"))
-                for o in reps:
+                for o in normais:
                     r = pymupdf.Rect(o["bbox"])
                     r = pymupdf.Rect(r.x0 + 0.4, r.y0 + 0.4, r.x1 - 0.4, r.y1 - 0.4)
                     page.add_redact_annot(r, fill=False)
                 page.apply_redactions(images=pymupdf.PDF_REDACT_IMAGE_NONE, graphics=pymupdf.PDF_REDACT_LINE_ART_NONE,
                                       text=pymupdf.PDF_REDACT_TEXT_REMOVE)
+            # 1b) texto de página escaneada: as letras são pixels da imagem, então apaga os pixels e pinta da cor do papel
+            if escaneados:
+                # a caixa do OCR é justa: aumenta um pouco (e mais embaixo, por causa das pernas de g, p, q, j)
+                area = lambda o, m=0: pymupdf.Rect(o["bbox"]) + (-1.5 - m, -1.5 - m, 1.5 + m, 1.5 + 0.22 * float(o["size"]) + m)
+                for o in escaneados:
+                    page.add_redact_annot(area(o), fill=False)
+                page.apply_redactions(images=pymupdf.PDF_REDACT_IMAGE_PIXELS, graphics=pymupdf.PDF_REDACT_LINE_ART_NONE,
+                                      text=pymupdf.PDF_REDACT_TEXT_REMOVE)
+                # pinta a cor do papel um pouco além da área apagada, para não ficar borda clara dos pixels cortados
+                for o in escaneados:
+                    page.draw_rect(area(o, 1), color=None, fill=hex_rgb(o.get("bg") or "#ffffff"), overlay=True)
             # 2) tarjas: apagam texto, pixels de imagem e desenhos cobertos, e pintam de preto
             if reds:
                 for o in reds:
