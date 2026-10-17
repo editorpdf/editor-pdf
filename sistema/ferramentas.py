@@ -447,6 +447,40 @@ def desbloquear(arqs, op):
     return saidas, avisos
 
 
+def lado_a_lado(vis, A, B, i, na, nb, fp, fpb):
+    """Uma página deitada com a página i de A à esquerda e de B à direita; palavras que saíram em vermelho, que entraram em verde."""
+    palavras = lambda doc: [(w[4], pymupdf.Rect(w[:4])) for w in doc[i].get_text("words", sort=True)] if i < doc.page_count else []
+    wa, wb = palavras(A), palavras(B)
+    saiu, entrou = [], []
+    sm = difflib.SequenceMatcher(None, [w for w, _ in wa], [w for w, _ in wb], autojunk=False)
+    for tag, a1, a2, b1, b2 in sm.get_opcodes():
+        if tag in ("replace", "delete"):
+            saiu += [r for _, r in wa[a1:a2]]
+        if tag in ("replace", "insert"):
+            entrou += [r for _, r in wb[b1:b2]]
+    pg = vis.new_page(width=842, height=595)
+    W, topo, marg = (842 - 3 * 18) / 2, 46, 18
+    f = lambda neg=False: (dict(fontname="RELB", fontfile=fpb) if neg else dict(fontname="REL", fontfile=fp)) if fp and fpb else dict(fontname="hebo" if neg else "helv")
+    pg.insert_text((marg, 24), "Página %d" % (i + 1), fontsize=12, **f(True))
+    for k, (doc, nome, marcas, cor) in enumerate(((A, na, saiu, (0.9, 0.15, 0.15)), (B, nb, entrou, (0.1, 0.7, 0.3)))):
+        x0 = marg + k * (W + marg)
+        caixa = pymupdf.Rect(x0, topo, x0 + W, 595 - marg)
+        rotulo = ("A (antigo): " if k == 0 else "B (novo): ") + nome
+        pg.insert_text((x0, topo - 6), rotulo[:70], fontsize=8.5, color=(.3, .3, .3), **f())
+        pg.draw_rect(caixa, color=(.8, .8, .8), width=0.6)
+        if i >= doc.page_count:
+            pg.insert_text((x0 + 12, topo + 24), "(esta página não existe aqui)", fontsize=10, color=(.5, .5, .5), **f())
+            continue
+        src = doc[i].rect
+        esc = min(caixa.width / src.width, caixa.height / src.height)
+        ox = caixa.x0 + (caixa.width - src.width * esc) / 2
+        oy = caixa.y0 + (caixa.height - src.height * esc) / 2
+        pg.show_pdf_page(pymupdf.Rect(ox, oy, ox + src.width * esc, oy + src.height * esc), doc, i)
+        for r in marcas:
+            alvo = pymupdf.Rect(ox + (r.x0 - src.x0) * esc, oy + (r.y0 - src.y0) * esc, ox + (r.x1 - src.x0) * esc, oy + (r.y1 - src.y0) * esc)
+            pg.draw_rect(alvo + (-1, -1, 1, 1), color=None, fill=cor, fill_opacity=0.35, overlay=True)
+
+
 def comparar(arqs, op):
     if len(arqs) != 2:
         raise Erro("Escolha exatamente 2 PDFs para comparar.")
@@ -477,8 +511,10 @@ def comparar(arqs, op):
     linha("A (antigo): %s  [%d páginas]" % (na, A.page_count))
     linha("B (novo):   %s  [%d páginas]" % (nb, B.page_count))
     linha("Em vermelho: o que só existe em A. Em verde: o que só existe em B.", cor=(.35, .35, .35))
+    linha("As páginas com diferença aparecem lado a lado no fim do relatório, com as palavras marcadas.", cor=(.35, .35, .35))
     estado["y"] += 8
     com_dif = 0
+    vis = pymupdf.open()  # páginas lado a lado (A | B) com as palavras que mudaram marcadas
     for i in range(max(A.page_count, B.page_count)):
         ta = A[i].get_text().splitlines() if i < A.page_count else []
         tb = B[i].get_text().splitlines() if i < B.page_count else []
@@ -487,6 +523,7 @@ def comparar(arqs, op):
         difs = [l for l in difflib.ndiff(ta, tb) if l[:1] in "+-"]
         if not difs:
             continue
+        lado_a_lado(vis, A, B, i, na, nb, fp, fpb)
         com_dif += 1
         linha("Página %d" % (i + 1), negrito=True, tam=11)
         for l in difs:
@@ -494,6 +531,8 @@ def comparar(arqs, op):
         estado["y"] += 6
     if com_dif == 0:
         linha("Nenhuma diferença de texto encontrada.", cor=(0.05, 0.5, 0.2), negrito=True, tam=12)
+    rel.insert_pdf(vis)
+    vis.close()
     A.close(); B.close()
     resumo = ["Diferenças de texto em %d página(s)." % com_dif if com_dif else "Os textos são iguais. Obs.: só o texto é comparado, não a aparência."]
     return [("comparacao.pdf", salvar(rel))], resumo
