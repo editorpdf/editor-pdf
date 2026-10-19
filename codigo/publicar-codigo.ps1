@@ -11,7 +11,7 @@ $env:Path = "$env:LOCALAPPDATA\MinGit\cmd;" + (Split-Path $gh) + ";$env:Path"
 
 # o que vai para o repositório (caminhos relativos à pasta Adobe; pastas vão inteiras)
 $lista = @(
-    'LEIA-ME.md', 'CONTEXTO.md',
+    'LEIA-ME.md', 'CONTEXTO.md', 'CLAUDE.md', 'AGENTS.md', 'testes',
     'sistema\app.py', 'sistema\servidor.py', 'sistema\ferramentas.py', 'sistema\painel.py', 'sistema\painel.html',
     'sistema\editor-pdf.html', 'sistema\motor.js', 'sistema\editor-pdf.spec', 'sistema\instalador.iss', 'sistema\versao.txt',
     'sistema\icone.ico', 'sistema\icone.png', 'sistema\Abrir editor.bat', 'sistema\abrir-painel.vbs', 'sistema\ligar-servidor.vbs',
@@ -33,10 +33,16 @@ if (-not (Test-Path (Join-Path $Repo '.git'))) {
     if ($LASTEXITCODE) {
         & $gh repo create editorpdf/editor-pdf --public --description 'Editor de PDF Fácil: editor de PDF gratuito para Windows, Android e navegador (AGPL-3.0)' --homepage 'https://editorpdf.github.io'
         if ($LASTEXITCODE) { throw "não consegui criar o repositório ($LASTEXITCODE)" }
+        $ErrorActionPreference = 'Stop'
+        git -C $Repo init -q -b main
+        git -C $Repo remote add origin https://github.com/editorpdf/editor-pdf.git
+    } else {
+        # computador novo: o repositório já existe no GitHub -> baixa, para continuar o mesmo histórico
+        Remove-Item -LiteralPath $Repo -Recurse -Force
+        & $gh repo clone editorpdf/editor-pdf $Repo
+        if ($LASTEXITCODE) { throw "não consegui baixar o repositório do código ($LASTEXITCODE)" }
+        $ErrorActionPreference = 'Stop'
     }
-    $ErrorActionPreference = 'Stop'
-    git -C $Repo init -q -b main
-    git -C $Repo remote add origin https://github.com/editorpdf/editor-pdf.git
 }
 # mesma identidade do site (e-mail "noreply" do GitHub: não expõe o e-mail pessoal) e sem converter quebras de linha
 git -C $Repo config user.name 'k2locserv-collab'

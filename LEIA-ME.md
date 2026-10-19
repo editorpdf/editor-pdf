@@ -60,7 +60,7 @@ Com o PDF aberto: **Exportar > Converter para Word** (ou o cartão "Converter pa
 
 **Exportar > Reconhecer texto (OCR)** (ou o cartão na tela inicial) deixa o PDF escaneado pesquisável e copiável: o app cria uma camada de texto invisível sobre a imagem. Escolha o documento inteiro ou só as páginas selecionadas, o idioma (português e inglês, só português, só inglês) e se pula as páginas que já têm texto. Dá para desfazer com Ctrl+Z.
 
-- Os dados de idioma ficam em `dados\tessdata` (`por`, `eng`, `osd`, baixados de github.com/tesseract-ocr/tessdata_fast). Para outro idioma, coloque o arquivo `xxx.traineddata` nessa pasta.
+- Os dados de idioma ficam em `dados\tessdata` (`por` e `eng`, baixados de github.com/tesseract-ocr/tessdata_fast). Para outro idioma, coloque o arquivo `xxx.traineddata` nessa pasta.
 - As páginas reconhecidas viram imagens de 300 dpi com o texto por baixo, então o arquivo cresce (cerca de 200 KB por página nos testes). Demora cerca de 1 segundo por página.
 - Escaneamentos tortos, borrados ou com letra pequena erram mais. O texto reconhecido não é perfeito: confira nomes, números e valores.
 - Depois do OCR, "Editar texto" muda o texto invisível, mas a imagem original continua mostrando o texto antigo. Para corrigir um escaneado, use a tarja ou adicione texto por cima.
