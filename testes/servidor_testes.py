@@ -44,6 +44,18 @@ t = texto(base64.b64decode(r["pdf"]))
 confere("4.500,00" in t and "3.000,00" not in t, "troca de texto apaga o antigo e escreve o novo")
 confere("Contrato" not in t, "tarja remove o texto de verdade")
 
+# 1b) PDF grande (mais de 40 páginas grava com a limpeza leve): o texto antigo não pode sobrar em nenhum objeto do arquivo
+d = pymupdf.open()
+for i in range(60):
+    d.new_page().insert_text((72, 100), "Pagina %d codigo SEGREDO-%03d" % (i, i), fontsize=12)
+grande = d.tobytes()
+b = servidor.analyze(grande, 5)["blocks"][0]
+op = {"page": 5, "kind": "rep", "bbox": b["bbox"], "origin": b["origin"], "text": "trocado", "size": b["size"], "color": b["color"],
+      "font": b["font"], "family": b["family"], "bold": False, "italic": False, "align": "left", "lineh": 1.2, "multi": False}
+g = pymupdf.open(stream=base64.b64decode(servidor.apply_ops(grande, [op])["pdf"]), filetype="pdf")
+sobrou = sum(1 for x in range(1, g.xref_length()) if g.xref_is_stream(x) and b"SEGREDO-005" in (g.xref_stream(x) or b""))
+confere(sobrou == 0 and "trocado" in g[5].get_text(), "PDF grande: o texto antigo sai do arquivo (nenhum objeto com ele)")
+
 # 2) PDF escaneado: OCR e troca de texto na imagem
 scan = open(os.path.join(pasta, "escaneado.pdf"), "rb").read()
 ocr = base64.b64decode(servidor.ocr_pdf(scan, idioma="por")["pdf"])

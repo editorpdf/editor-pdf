@@ -46,6 +46,75 @@ body{display:flex;align-items:center;justify-content:center;flex-direction:colum
 @keyframes g{to{transform:rotate(360deg)}}</style><div class="r"></div><div>Abrindo…</div>"""
 
 
+# ------------------------------------------------------------ "Abrir junto com o Windows"
+# Com a opção ligada, o Windows abre o app com --fundo ao entrar na conta: o motor e a janela carregam escondidos e,
+# quando o usuário abre o app, a janela só aparece (sem esperar o Python e o WebView2). Fechar a janela principal
+# esconde em vez de encerrar, e ela volta para a tela inicial. Desligando a opção, fechar encerra como antes.
+RUN_CHAVE = r"Software\Microsoft\Windows\CurrentVersion\Run"
+RUN_NOME = "Editor de PDF"
+FUNDO = {"principal": None, "base": None, "escondida": False, "saindo": False}
+
+
+def inicio_ligado():
+    try:
+        import winreg
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, RUN_CHAVE) as k:
+            winreg.QueryValueEx(k, RUN_NOME)
+        return True
+    except OSError:
+        return False
+
+
+def ligar_inicio(ligar):
+    import winreg
+    with winreg.OpenKey(winreg.HKEY_CURRENT_USER, RUN_CHAVE, 0, winreg.KEY_SET_VALUE) as k:
+        if ligar:
+            winreg.SetValueEx(k, RUN_NOME, 0, winreg.REG_SZ, '"%s" --fundo' % sys.executable)
+        else:
+            try:
+                winreg.DeleteValue(k, RUN_NOME)
+            except OSError:
+                pass
+
+
+def ao_fechar_principal():
+    """Fechar a janela principal: com a opção ligada, esconde e volta ao início (o app continua pronto)."""
+    if FUNDO["saindo"] or not inicio_ligado():
+        return True
+    try:  # o Windows está desligando ou saindo da conta: fecha de verdade (senão travaria o desligamento)
+        import ctypes
+        if ctypes.windll.user32.GetSystemMetrics(0x2000):  # SM_SHUTTINGDOWN
+            return True
+    except Exception:  # noqa: BLE001
+        pass
+
+    def esconder():
+        j = FUNDO["principal"]
+        try:
+            j.hide()
+            FUNDO["escondida"] = True
+            j.load_url(FUNDO["base"])  # tela inicial: o PDF aberto sai da memória
+        except Exception:  # noqa: BLE001
+            pass
+    threading.Thread(target=esconder, daemon=True).start()
+    return False
+
+
+def mostrar_principal(url=None):
+    """Pedido para abrir o app (atalho, duplo clique num PDF) enquanto ele está escondido: só mostra a janela."""
+    j = FUNDO["principal"]
+    FUNDO["escondida"] = False
+    if url:
+        j.load_url(url)
+    j.show()
+    try:
+        from System import Action
+        form = j.native
+        form.Invoke(Action(lambda: (form.Activate(), form.BringToFront())))
+    except Exception:  # noqa: BLE001
+        pass
+
+
 def responde(porta):
     s = socket.socket()
     s.settimeout(0.3)
@@ -179,6 +248,30 @@ class Api:
 
         def fechar():
             time.sleep(1.5)
+            FUNDO["saindo"] = True  # encerra de verdade, mesmo com "Abrir junto com o Windows" ligado
+            for w in list(webview.windows):
+                w.destroy()
+        threading.Thread(target=fechar, daemon=True).start()
+        return {"ok": True}
+
+    def inicio(self, ligar=None):
+        """Configurações: "Abrir junto com o Windows". Só no app instalado pelo instalador (não na Loja nem rodando do código)."""
+        if LOJA or not getattr(sys, "frozen", False):
+            return {"disponivel": False}
+        if ligar is not None:
+            try:
+                ligar_inicio(bool(ligar))
+            except OSError as e:
+                return {"disponivel": True, "ligado": inicio_ligado(), "erro": str(e)}
+        return {"disponivel": True, "ligado": inicio_ligado()}
+
+    def sair(self):
+        """Configurações: "Fechar o app de vez" (com "Abrir junto com o Windows" ligado, fechar a janela só esconde)."""
+        import webview
+
+        def fechar():
+            time.sleep(0.3)
+            FUNDO["saindo"] = True
             for w in list(webview.windows):
                 w.destroy()
         threading.Thread(target=fechar, daemon=True).start()
@@ -241,6 +334,7 @@ def nova_janela(url):
 def main():
     # PDF pedido pelo Windows (duplo clique, "Abrir com" ou arrastado para o ícone)
     caminho = next((a for a in sys.argv[1:] if a.lower().endswith(".pdf") and os.path.isfile(a)), None)
+    fundo = "--fundo" in sys.argv  # aberto pelo Windows ao entrar na conta: carrega tudo escondido
 
     # já aberto? pede para a cópia aberta mostrar outra janela (com o PDF, se veio um)
     try:
@@ -248,7 +342,14 @@ def main():
             inst = json.load(f)
         porta = inst["porta"]
         if responde(porta):
+            if fundo:
+                return  # já está pronto
             import urllib.request
+            try:  # deixa a cópia aberta trazer a janela para a frente (o Windows só deixa quem o usuário acabou de abrir)
+                import ctypes
+                ctypes.windll.user32.AllowSetForegroundWindow(int(inst.get("pid") or -1))
+            except Exception:  # noqa: BLE001
+                pass
             url = "http://127.0.0.1:%d/" % porta
             req = urllib.request.Request(url + "api/abrir", json.dumps({"caminho": caminho or ""}).encode(),
                                          {"Content-Type": "application/json", "X-Segredo": inst.get("segredo", "")})
@@ -297,16 +398,28 @@ def main():
         webview.settings["ALLOW_DOWNLOADS"] = True   # se algum download escapar do "Salvar como", o Windows pergunta onde salvar
         api = Api()
         api._janela = webview.create_window(TITULO, html=ABRINDO, js_api=api, width=1360, height=860, min_size=(820, 560),
-                                            text_select=True, background_color="#F3F3F3")
+                                            text_select=True, background_color="#F3F3F3", hidden=fundo)
         soltar_filtro(api._janela)
+        FUNDO.update(principal=api._janela, escondida=fundo)
+        api._janela.events.closing += ao_fechar_principal
+
+        def abrir_janela(i):
+            # app escondido (aberto com o Windows ou fechado com a opção ligada): mostra a janela que já está pronta
+            url = FUNDO["base"] + ("?abrir=" + i if i else "")
+            if FUNDO["escondida"]:
+                mostrar_principal(url if i else None)
+            else:
+                nova_janela(url)
 
         def entrar():
             carregado.wait()
             if "url" not in pronto:
                 api._janela.load_html(ABRINDO.replace("Abrindo…", "Não foi possível iniciar o editor. Feche e abra de novo."))
+                if fundo:
+                    api._janela.show()
                 return
-            base = pronto["base"]
-            pronto["servidor"].NOVA_JANELA = lambda i: nova_janela(base + ("?abrir=" + i if i else ""))
+            FUNDO["base"] = pronto["base"]
+            pronto["servidor"].NOVA_JANELA = abrir_janela
             api._janela.load_url(pronto["url"])
 
         webview.start(entrar, gui="edgechromium", private_mode=False, storage_path=WEBVIEW,

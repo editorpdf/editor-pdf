@@ -21,7 +21,7 @@ reconhece texto de escaneado (OCR) e mais ~35 ferramentas. Existe em quatro form
 
 Nomes exatos: o app se chama **"Editor de PDF"**; na Microsoft Store o nome reservado é **"Editor de PDF Fácil"**
 ("Editor de PDF" já era de outra pessoa). Pacote Android: `br.editorpdf.app`. Código-fonte público (AGPL-3.0):
-https://github.com/editorpdf/editor-pdf. Versão atual: ver `sistema\versao.txt` (era **2.2.1** em 18/10/2026).
+https://github.com/editorpdf/editor-pdf. Versão atual: ver `sistema\versao.txt` (era **2.3** em 19/10/2026).
 
 ---
 
@@ -120,7 +120,10 @@ Estas decisões foram tomadas de propósito. Mantenha-as, a menos que o dono pe�
 9. **Escaneado editável (2.1):** o OCR cria texto invisível sobre a imagem; ao editar, o app apaga os pixels da imagem
    naquela área, pinta a cor do papel (amostrada dos pixels) e escreve o texto novo na cor da tinta.
 10. **PDF com senha (2.1):** pede a senha, abre uma cópia sem proteção e, ao salvar, protege de novo com a mesma senha.
-11. **Estilo do código:** JS compacto (como o resto do `editor-pdf.html`), nomes e comentários em português,
+11. **Desempenho:** antes de otimizar, meça com `testes\desempenho.py` (PDF de 300 páginas). Regras que já renderam muito:
+    não pedir ao servidor nada de páginas longe da tela; não regravar o PDF no pdf-lib sem necessidade; não importar
+    bibliotecas pesadas (pdf2docx/OpenCV) só para saber se existem; `garbage=3` só em PDFs pequenos.
+12. **Estilo do código:** JS compacto (como o resto do `editor-pdf.html`), nomes e comentários em português,
     funções pequenas com nomes descritivos (`desbloquearAoAbrir`, `protegerDeNovo`, `oferecerOcrParaEditar`...).
     Siga o estilo do trecho vizinho. Os ids dos elementos (`bOpen`, `bSave`, `rail`, `right`...) são usados pelo JS.
 
@@ -143,7 +146,9 @@ Todos os comandos em PowerShell, a partir da pasta `Adobe`.
    Sai `instalador\Instalar Editor de PDF.exe`. Enquanto o Inno Setup grava, o arquivo fica travado (o Windows diz
    "outro programa está usando este arquivo") — é normal, espere terminar.
 5. **APK:** `android\gerar-apk.ps1` → `instalador\Editor de PDF.apk`.
-6. **Testar o pacote pronto:** `testes\rodar-testes.ps1 -Pacote`.
+6. **Testar o pacote pronto:** `testes\rodar-testes.ps1 -Pacote` (o dono precisa estar com o Editor de PDF fechado:
+   o app só aceita uma cópia aberta, e o teste fecha a dele). No `-Pacote` o motor do celular é pulado, porque o
+   instalador do Windows não leva `lib\mupdf` nem `lib\tesseract`.
 7. **Publicar** (pedir confirmação ao dono antes): `web\publicar-versao.ps1`. Ele envia o instalador e o APK para as
    releases do GitHub, publica o código-fonte (com a marcação `windows-X-android-Y`) e atualiza o site.
    Em 1–2 minutos `https://editorpdf.github.io/versao.json` mostra o número novo e os apps avisam os usuários.
@@ -202,6 +207,16 @@ Os commits do Git usam a identidade `k2locserv-collab <343685101+k2locserv-colla
 - As cópias de trabalho do site (`%LOCALAPPDATA%\EditorPDF-web\site`) e do código (`%LOCALAPPDATA%\EditorPDF-codigo\repo`)
   ficam fora do OneDrive. Num computador novo elas não existem: `publicar-web.ps1` e `publicar-codigo.ps1` baixam
   (`gh repo clone`) sozinhos na primeira vez — só precisa do `gh auth login` feito.
+- **Controle Inteligente de Aplicativos (Smart App Control) está LIGADO no PC do dono** (desde set/2026). Ele bloqueia
+  executáveis sem assinatura digital que ainda não têm reputação — às vezes o `Editor de PDF.exe` recém-gerado é barrado
+  ("Uma política de Controle de Aplicativo bloqueou este arquivo"; evento 3077 em Microsoft-Windows-CodeIntegrity/Operational).
+  Não desligue nem contorne essa proteção. Se o pacote for bloqueado, teste a partir do código (`rodar-testes.ps1` sem
+  `-Pacote`) e avise o dono. A solução de verdade é assinar o app (certificado de assinatura de código) ou instalar pela
+  Microsoft Store, que é assinada pela Microsoft.
+- Testar "Abrir junto com o Windows" a partir do código: grave temporariamente o valor `Editor de PDF` em
+  `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` (qualquer texto), abra `py sistema\app.py --fundo` e use
+  `testes\janela.py visivel|fechar <pid>`; apague o valor no fim. Antes, feche cópias antigas do app (o segundo processo
+  só repassa o pedido para a cópia aberta e sai — isso confunde o teste).
 - `py` é o Python 3.15 em `%LOCALAPPDATA%\Python\pythoncore-3.15-64`; o comando `python` pode cair no atalho da Microsoft Store.
 - Scripts `.ps1` com acentos precisam ser salvos em **UTF-8 com BOM** (o PowerShell 5.1 lê errado sem o BOM).
 - MakeAppx (MSIX) dá erro "configuração lado a lado" se rodar de dentro do LOCALAPPDATA: o script copia para o TEMP.
@@ -216,3 +231,7 @@ Os commits do Git usam a identidade `k2locserv-collab <343685101+k2locserv-colla
 
 Manter negrito/itálico no meio da frase ao editar; editar texto em páginas giradas; criar/editar links e marcadores;
 criar campos de formulário; assinatura em tela cheia no celular; publicar na Google Play.
+Apple App Store: avaliada em 19/10/2026 e deixada de lado (US$ 99/ano, exige Mac, e a AGPL do MuPDF é incompatível com
+os termos da App Store sem a licença comercial da Artifex). No iPhone, o caminho é o site com "Adicionar à Tela de Início".
+O app não vai ter função de descobrir ou quebrar senha de PDF: o "Desbloquear PDF" exige a senha (só remove sem senha
+as restrições de imprimir/copiar/editar de PDFs que abrem sem senha).

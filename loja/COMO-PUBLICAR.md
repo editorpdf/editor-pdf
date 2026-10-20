@@ -4,7 +4,8 @@
 > link https://apps.microsoft.com/detail/9P5JP86G028L. Identidade já em `identidade.json`.
 > Primeiro envio (versão 1.9.0.0) mandado para certificação em 17/10/2026: público, gratuito, Produtividade,
 > classificação Livre, política de privacidade em editorpdf.github.io/privacidade.html, justificativa do runFullTrust nas Opções de envio. Aprovado e publicado no mesmo dia.
-> Envio 2 (versão 2.0.0.0, "Sobre e licenças" e código aberto) preparado em 17/10/2026: pacote trocado, "Novidades nesta versão" e linha do código-fonte na descrição. Enviado para certificação no mesmo dia.
+> Envio 2 (versão 2.0.0.0, "Sobre e licenças" e código aberto) preparado em 17/10/2026: pacote trocado, "Novidades nesta versão" e linha do código-fonte na descrição. Enviado para certificação no mesmo dia e publicado.
+> Envio 3 (versão 2.4.0.0): enviado para certificação em 20/10/2026, com as novidades da 2.1 até a 2.4. A versão 2.4 ainda não saiu no instalador/site (só na Loja).
 
 ## 1. Conta (uma vez só)
 1. Entre em https://storedeveloper.microsoft.com com a sua conta Microsoft.

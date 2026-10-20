@@ -9,7 +9,12 @@ $Raiz = Split-Path $Loja
 $Sistema = Join-Path $Raiz 'sistema'
 # roda de uma cópia no TEMP: de dentro do %LOCALAPPDATA% o Windows não carrega as peças do MakeAppx (erro de configuração lado a lado)
 $bin = Join-Path $env:TEMP 'epdf-msixtools'
-if (-not (Test-Path (Join-Path $bin 'makeappx.exe'))) { Copy-Item "$env:LOCALAPPDATA\MsixTools\x64" $bin -Recurse -Force }
+# copia o conteúdo da pasta (com a pasta de destino já existente, copiar a pasta em si criaria uma subpasta x64)
+if (-not (Test-Path (Join-Path $bin 'makeappx.exe'))) {
+    if (Test-Path $bin) { Remove-Item -LiteralPath $bin -Recurse -Force }
+    New-Item -ItemType Directory $bin -Force | Out-Null
+    Copy-Item "$env:LOCALAPPDATA\MsixTools\x64\*" $bin -Recurse -Force
+}
 $makeappx = Join-Path $bin 'makeappx.exe'; $makepri = Join-Path $bin 'makepri.exe'
 if (-not (Test-Path (Join-Path $App 'Editor de PDF.exe'))) { throw "App do PyInstaller não encontrado em $App" }
 

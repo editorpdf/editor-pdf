@@ -47,6 +47,9 @@ def main():
     acao, alvo = sys.argv[1], sys.argv[2]
     ws = None if acao == "esperar" else conectar()
     if acao == "js":
+        # janela escondida ou minimizada não desenha (requestAnimationFrame e rolagem param): traz para a frente
+        comando(ws, "Page.bringToFront", {})
+        comando(ws, "Emulation.setFocusEmulationEnabled", {"enabled": True})
         codigo = open(alvo, encoding="utf-8-sig").read()
         pasta = sys.argv[3] if len(sys.argv) > 3 else os.path.join(os.environ["TEMP"], "editorpdf-testes")
         for marca, arq in (("__SENHA_B64__", "senha.pdf"), ("__ESCANEADO_B64__", "escaneado.pdf")):

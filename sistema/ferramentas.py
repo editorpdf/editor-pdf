@@ -422,7 +422,7 @@ def proteger(arqs, op):
     saidas = []
     for nome, dados in arqs:
         d = abrir_pdf(dados, nome)
-        saidas.append((base(nome) + "-protegido.pdf", d.tobytes(garbage=3, deflate=True, encryption=pymupdf.PDF_ENCRYPT_AES_256,
+        saidas.append((base(nome) + "-protegido.pdf", d.tobytes(garbage=3 if d.page_count <= 40 else 1, deflate=True, encryption=pymupdf.PDF_ENCRYPT_AES_256,
                                                                 owner_pw=senha, user_pw=senha, permissions=int(perm))))
         d.close()
     return saidas, ["Para abrir, será pedida a senha que você digitou. Guarde-a: não há como recuperar."]
@@ -442,7 +442,7 @@ def desbloquear(arqs, op):
             avisos.append("“%s”: senha aceita, proteção removida." % nome)
         else:
             avisos.append("“%s” abre sem senha: removi as restrições de impressão, cópia e edição." % nome)
-        saidas.append((base(nome) + "-desbloqueado.pdf", d.tobytes(garbage=3, deflate=True, encryption=pymupdf.PDF_ENCRYPT_NONE)))
+        saidas.append((base(nome) + "-desbloqueado.pdf", d.tobytes(garbage=3 if d.page_count <= 40 else 1, deflate=True, encryption=pymupdf.PDF_ENCRYPT_NONE)))
         d.close()
     return saidas, avisos
 

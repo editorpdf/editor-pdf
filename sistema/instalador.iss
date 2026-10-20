@@ -50,6 +50,8 @@ Root: HKCU; Subkey: "Software\EditorPDF\Capabilities"; ValueType: string; ValueN
 Root: HKCU; Subkey: "Software\EditorPDF\Capabilities"; ValueType: string; ValueName: "ApplicationDescription"; ValueData: "Ler, editar e converter PDFs"; Tasks: leitor
 Root: HKCU; Subkey: "Software\EditorPDF\Capabilities\FileAssociations"; ValueType: string; ValueName: ".pdf"; ValueData: "EditorPDF.pdf"; Tasks: leitor
 Root: HKCU; Subkey: "Software\RegisteredApplications"; ValueType: string; ValueName: "Editor de PDF"; ValueData: "Software\EditorPDF\Capabilities"; Flags: uninsdeletevalue; Tasks: leitor
+; "Abrir junto com o Windows" (o app grava esse valor quando o usuário liga a opção): sai ao desinstalar
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: none; ValueName: "Editor de PDF"; Flags: dontcreatekey uninsdeletevalue
 
 [Files]
 Source: "{#Origem}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
@@ -69,6 +71,10 @@ Filename: "{app}\Editor de PDF.exe"; Description: "Abrir o Editor de PDF agora";
 Type: filesandordirs; Name: "{localappdata}\EditorPDF\janela"
 ; programas que o app detecta (Office, Ghostscript...): é refeito na primeira abertura
 Type: files; Name: "{localappdata}\EditorPDF\ambiente.json"
+
+[UninstallRun]
+; com "Abrir junto com o Windows" o app fica em segundo plano: fecha antes de apagar os arquivos
+Filename: "{sys}\taskkill.exe"; Parameters: "/F /IM ""Editor de PDF.exe"""; Flags: runhidden; RunOnceId: "FecharApp"
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{localappdata}\EditorPDF"

@@ -104,6 +104,12 @@ def b64(data):
     return base64.b64encode(data).decode("ascii")
 
 
+def gravar(doc):
+    """PDF final em bytes. garbage=1 já tira do arquivo tudo o que ficou sem uso (o texto apagado sai de verdade);
+    garbage=3 ainda junta objetos repetidos, mas em PDF grande leva segundos e quase nunca diminui o arquivo."""
+    return doc.tobytes(garbage=3 if doc.page_count <= 40 else 1, deflate=True)
+
+
 def classify_font(name, flags):
     n = name or ""
     bold = bool(flags & 16) or bool(re.search(r"bold|black|heavy|semibold|demi", n, re.I))
@@ -404,7 +410,7 @@ def ocr_pdf(pdf_bytes, paginas=None, idioma="por+eng", pular_com_texto=True, dpi
             avisos.append("%d página(s) já tinham texto e foram mantidas como estavam." % puladas)
         if feitas == 0:
             avisos.append("Nenhuma página precisou de OCR.")
-        return {"pdf": b64(out.tobytes(garbage=3, deflate=True)), "reconhecidas": feitas, "avisos": avisos}
+        return {"pdf": b64(gravar(out)), "reconhecidas": feitas, "avisos": avisos}
     finally:
         doc.close()
 
@@ -454,13 +460,19 @@ def docx_de_ocr(pdf_bytes, inicio, fim, idioma):
 
 
 # ---------------------------------------------------------------- PDF para Word
+_docx_ok = None
+
+
 def docx_disponivel():
-    try:
-        import pdf2docx  # noqa: F401
-        import docx  # noqa: F401
-        return True
-    except Exception:
-        return False
+    """Só confere se os pacotes existem (sem importar: o pdf2docx traz OpenCV e NumPy e atrasava a abertura do editor)."""
+    global _docx_ok
+    if _docx_ok is None:
+        import importlib.util
+        try:
+            _docx_ok = all(importlib.util.find_spec(m) is not None for m in ("pdf2docx", "docx"))
+        except Exception:  # noqa: BLE001
+            _docx_ok = False
+    return _docx_ok
 
 
 def converter_docx(pdf_bytes, inicio=0, fim=None, ocr="auto", idioma="por+eng"):
@@ -616,7 +628,7 @@ def apply_ops(pdf_bytes, ops):
                             s *= 0.94
                     else:
                         warnings.append("Página %d: o texto não coube no bloco e não foi escrito." % (pno + 1))
-        data = doc.tobytes(garbage=3, deflate=True)
+        data = gravar(doc)
         return {"pdf": b64(data), "warnings": warnings, "report": report}
     finally:
         doc.close()
