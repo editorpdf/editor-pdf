@@ -21,7 +21,7 @@ reconhece texto de escaneado (OCR) e mais ~35 ferramentas. Existe em quatro form
 
 Nomes exatos: o app se chama **"Editor de PDF"**; na Microsoft Store o nome reservado é **"Editor de PDF Fácil"**
 ("Editor de PDF" já era de outra pessoa). Pacote Android: `br.editorpdf.app`. Código-fonte público (AGPL-3.0):
-https://github.com/editorpdf/editor-pdf. Versão atual: ver `sistema\versao.txt` (era **2.3** em 19/10/2026).
+https://github.com/editorpdf/editor-pdf. Versão atual: ver `sistema\versao.txt` (era **2.4** em 20/10/2026; na Microsoft Store a 2.4 foi enviada para certificação nesse dia).
 
 ---
 

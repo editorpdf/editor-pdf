@@ -21,8 +21,8 @@ android {
         applicationId = "br.editorpdf.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 12
-        versionName = "2.4"
+        versionCode = 13
+        versionName = "2.4.1"
     }
 
     signingConfigs {

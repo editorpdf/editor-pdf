@@ -57,6 +57,36 @@ try{
   v.scrollTop=0;setTool('select');
 }catch(e){ok(false,'páginas perto da tela: '+e.message)}
 
+// 2c) editar texto "no lugar": cursor onde clicou (não seleciona tudo) e o trecho não se arrasta como objeto
+try{
+  const pde=await PDFDocument.create();pde.addPage([595,842]).drawText('Contrato de prestacao de servicos',{x:72,y:760,size:20,font:await pde.embedFont(StandardFonts.Helvetica)});
+  await openFile(new File([await pde.save()],'editar.pdf',{type:'application/pdf'}));await sl(400);
+  setTool('edittext');for(let t=0;t<40&&!document.querySelector('.tl');t++)await sl(100);
+  const tl=document.querySelector('.tl'),r=tl.getBoundingClientRect();
+  tl.dispatchEvent(new MouseEvent('click',{bubbles:true,clientX:r.left+r.width*.4,clientY:r.top+r.height/2}));
+  for(let t=0;t<30&&!document.querySelector('.o.rep[contenteditable=true]');t++)await sl(100);
+  const ed=document.querySelector('.o.rep[contenteditable=true]'),s=getSelection();
+  ok(ed&&s.isCollapsed&&s.anchorOffset>3&&s.anchorOffset<ed.textContent.length-3,'editar texto: o cursor fica onde clicou (posição '+s.anchorOffset+'), sem selecionar tudo');
+  ed.textContent=ed.textContent.replace('prestacao','PRESTACAO');ed.blur();await sl(150);
+  const o=S.objs.find(x=>x.type==='rep'),x0=o.x,el=document.querySelector(`.o[data-id="${o.id}"]`),er=el.getBoundingClientRect(),L=el.closest('.layer');
+  const pe=(t,dx)=>el.dispatchEvent(new PointerEvent(t,{bubbles:true,pointerId:3,pointerType:'mouse',button:0,clientX:er.left+10+dx,clientY:er.top+5}));
+  pe('pointerdown',0);L.dispatchEvent(new PointerEvent('pointermove',{bubbles:true,pointerId:3,pointerType:'mouse',clientX:er.left+90,clientY:er.top+5}));L.dispatchEvent(new PointerEvent('pointerup',{bubbles:true,pointerId:3,pointerType:'mouse'}));await sl(200);
+  ok(o.x===x0&&o.text.includes('PRESTACAO'),'editar texto: arrastar não move o trecho (é texto, não objeto)');
+  const ed2=document.querySelector('.o.rep[contenteditable=true]');if(ed2)ed2.blur();await sl(100);
+  S.objs=[];S.recSalvo=chaveEdicao();setTool('select');
+}catch(e){ok(false,'editar no lugar: '+e.message)}
+
+// 2d) zoom com pinça (dois dedos) no celular
+try{
+  const pdz=await PDFDocument.create();pdz.addPage([595,842]);await openFile(new File([await pdz.save()],'pinca.pdf',{type:'application/pdf'}));await sl(400);
+  const v=document.querySelector('#view'),r=v.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+200,s0=S.scale;
+  const tq=(id,x)=>new Touch({identifier:id,target:v,clientX:x,clientY:cy});
+  const ev=(tipo,d)=>v.dispatchEvent(new TouchEvent(tipo,{bubbles:true,cancelable:true,touches:tipo==='touchend'?[]:[tq(1,cx-d),tq(2,cx+d)],changedTouches:[tq(1,cx-d)]}));
+  ev('touchstart',40);for(let d=50;d<=120;d+=10)ev('touchmove',d);ev('touchend',0);await sl(300);
+  ok(Math.abs(S.scale/s0-3)<.05&&!$('#pages').style.transform,'pinça: afastar os dedos aumenta o zoom ('+Math.round(s0*100)+'% → '+Math.round(S.scale*100)+'%)');
+  fitWidth();
+}catch(e){ok(false,'pinça: '+e.message)}
+
 // 3) textos e carimbos salvos, seleção múltipla
 try{
   const pd=await PDFDocument.create();const pg=pd.addPage([595,842]);pg.drawText('Documento de teste',{x:72,y:770,size:18,font:await pd.embedFont(StandardFonts.Helvetica)});
